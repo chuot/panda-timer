@@ -247,7 +247,7 @@ class PandaTimer {
 
                 events.forEach((event) => document.body.removeEventListener(event, bootstrap));
             }
-        }
+        };
 
         events.forEach((event) => document.body.addEventListener(event, bootstrap));
     }
