@@ -1,0 +1,16 @@
+{
+    "author": "Chrystian Huot <chrystian.huot@saubeo.solutions>",
+    "dependencies": {},
+    "devDependencies": {
+        "eslint": "^7.14.0",
+        "terser": "^5.5.1"
+    },
+    "license": "LICENSE",
+    "main": "panda-timer.js",
+    "name": "panda-timer",
+    "private": true,
+    "scripts": {
+        "build": "terser --compress --ecma 2015 --mangle --module --output dist/panda-timer.min.js -- src/panda-timer.js"
+    },
+    "version": "1.0.0"
+}
