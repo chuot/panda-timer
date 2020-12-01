@@ -73,10 +73,11 @@ class PandaTimer {
                 text: typeof config.color.text === 'string' ? config.color.text : PandaTimer.defaultConfig.color.text,
                 timer: typeof config.color.timer === 'string' ? config.color.timer : PandaTimer.defaultConfig.color.timer,
             },
-            font: config.font || PandaTimer.defaultConfig.font,
+            font: typeof config.font === 'string' ? config.font : PandaTimer.defaultConfig.font,
+            indexed: typeof config.indexed === 'boolean' ? config.indexed : PandaTimer.defaultConfig.indexed,
             text: {
-                line1: config.text.line1 || PandaTimer.defaultConfig.text.line1,
-                line2: config.text.line2 || PandaTimer.defaultConfig.text.line2,
+                line1: typeof config.text.line1 === 'string' ? config.text.line1 : PandaTimer.defaultConfig.text.line1,
+                line2: typeof config.text.line2 === 'string' ? config.text.line2 : PandaTimer.defaultConfig.text.line2,
             },
             timeLeft: isNaN(timeLeft) ? PandaTimer.defaultConfig.timeLeft : timeLeft,
             timeMax: parseInt(`${config.timeMax}`) || PandaTimer.defaultConfig.timeMax,
@@ -442,7 +443,11 @@ class PandaTimer {
             angle += 2 * Math.PI
         }
 
-        const timeLeft = Math.round(this._config.timeMax - (this._config.timeMax / (2 * Math.PI) * angle));
+        let timeLeft = Math.round(this._config.timeMax - (this._config.timeMax / (2 * Math.PI) * angle));
+
+        if (this._config.indexed) {
+            timeLeft = Math.round(timeLeft / 60) * 60;
+        }
 
         if (Math.abs(timeLeft - this._cursorPrevious) < this._config.timeMax / 2) {
             this._cursorPrevious = timeLeft;
@@ -558,6 +563,7 @@ PandaTimer.defaultConfig = {
         timer: '#f00',
     },
     font: 'arial',
+    indexed: true,
     text: {
         line1: 'Panda Timer',
         line2: '',

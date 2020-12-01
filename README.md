@@ -89,6 +89,7 @@ subscription.unsubscribe();
         timer: '#f00',                // Timer color.
     },
     font: 'arial',                    // Text font.
+    indexed: true,                    // Move cursor aligned with marks.
     text: {
         line1: 'Panda Timer',         // First text line.
         line1: '',                    // Second text line.
