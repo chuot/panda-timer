@@ -460,7 +460,9 @@ class PandaTimer {
 
         this._draw();
 
-        this.start();
+        if (this._config.autostart) {
+            this.start();
+        }
     }
 
     _onTouch(event) {
@@ -481,6 +483,8 @@ class PandaTimer {
             event.preventDefault();
 
             this._cursorPrevious = this.timeLeft;
+
+            this.stop();
         }
     }
 
