@@ -20,6 +20,10 @@
  */
 
 class PandaTimer {
+    get timeLeft() {
+        return Math.max(0, Math.round((this._dateEnd.getTime() - new Date().getTime()) / 1000));
+    }
+
     get _centerX() {
         return this._canvas.width / 2;
     }
@@ -34,13 +38,6 @@ class PandaTimer {
 
     get _radius() {
         return Math.floor(Math.min(this._canvas.height, this._canvas.width) / 2 * 0.9);
-    }
-
-    get _timeLeft() {
-        return this.__timeLeft;
-    }
-    set _timeLeft(timeLeft) {
-        this.__timeLeft = Math.max(0, Math.min(this._config.timeMax, parseInt(`${timeLeft}`) || 0));
     }
 
     get _width() {
@@ -91,19 +88,17 @@ class PandaTimer {
 
         this._cursorPrevious = null;
 
-        this._intervalHandle = null;
+        this._dateEnd = null;
 
-        this._lastTime = null;
+        this._intervalHandle = null;
 
         this._responsive = !this._canvas.attributes.getNamedItem('height') && !this._canvas.attributes.getNamedItem('width');
 
         this._subscriptions = [];
 
-        this.__timeLeft = 0;
-
-        this._timeLeft = this._config.timeLeft;
-
         this._bootstrap();
+
+        this.setTimeLeft(this._config.timeLeft);
 
         if (this._responsive) {
             this._resize();
@@ -152,22 +147,23 @@ class PandaTimer {
     }
 
     setTimeLeft(timeLeft) {
-        this._timeLeft = timeLeft;
+        if (typeof timeLeft !== 'number') {
+            return;
+        }
+
+        this._dateEnd = new Date();
+
+        this._dateEnd.setSeconds(this._dateEnd.getSeconds() + timeLeft);
 
         this._draw();
     }
 
-    start(timeLeft = this._timeLeft) {
-        if (!timeLeft) {
-            return;
-
-        } else if (timeLeft !== this._timeLeft) {
-            this._timeLeft = timeLeft;
-
-            this._draw();
+    start(timeLeft) {
+        if (typeof timeleft === 'number') {
+            this.setTimeLeft(timeLeft);
         }
 
-        const interval = document.visibilityState === 'visible' ? 1 : timeLeft;
+        const interval = document.visibilityState === 'visible' ? 1 : 10000;
 
         if (this._intervalHandle) {
             clearInterval(this._intervalHandle);
@@ -177,23 +173,17 @@ class PandaTimer {
             this._draw();
         }
 
-        this._lastTime = new Date();
-
         this._intervalHandle = setInterval(() => {
             this._tick();
 
-            this._lastTime = new Date();
-
-            if (this._timeLeft < 1) {
+            if (this.timeLeft <= 0) {
                 clearInterval(this._intervalHandle);
 
                 this._intervalHandle = null;
 
-                this._timeLeft = 0;
-
                 this._playCompleted();
 
-            } else if (!(Math.round(this._timeLeft) % 300)) {
+            } else if (!(this.timeLeft % 300)) {
                 this._playReminder();
             }
 
@@ -210,8 +200,6 @@ class PandaTimer {
     }
 
     subscribe(callback, timeLeft = 0) {
-        const roundedTimeLeft = Math.round(timeLeft);
-
         const subscription = {
             unsubscribe: () => {
                 const index = this._subscriptions.find((_subscription) => _subscription === subscription);
@@ -226,7 +214,7 @@ class PandaTimer {
                 }
             },
             get _callback() { return typeof callback === 'function' ? callback : () => { } },
-            get _timeLeft() { return roundedTimeLeft },
+            get _timeLeft() { return Math.round(timeLeft) },
         };
 
         this._subscriptions.push(subscription);
@@ -237,7 +225,7 @@ class PandaTimer {
     _bootstrap() {
         const events = ['keydown', 'mousedown', 'touchstart'];
 
-        const bootstrap = async () => {
+        const bootstrap = () => {
             if (!this._audioContext) {
                 this._audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -274,7 +262,7 @@ class PandaTimer {
     }
 
     _drawCursor() {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this._timeLeft);
+        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft);
 
         this._ctx.beginPath();
         this._ctx.translate(this._centerX + this._radius * 0.8 * Math.sin(angle), this._centerY + this._radius * -0.8 * Math.cos(angle));
@@ -365,9 +353,11 @@ class PandaTimer {
         this._ctx.textAlign = 'center';
 
         if (this._cursorMoving) {
-            const hours = this._config.timeMax >= 3600 ? `${Math.floor(this._timeLeft / 3600)}h` : '';
-            const minutes = `${Math.floor(this._timeLeft % 3600 / 60)}m`.replace(/^([0-9]m)/, '0$1');
-            const seconds = `${this._timeLeft % 60}s`.replace(/^([0-9]s)/, '0$1');
+            const timeLeft = this.timeLeft;
+
+            const hours = this._config.timeMax >= 3600 ? `${Math.floor(timeLeft / 3600)}h` : '';
+            const minutes = `${Math.floor(timeLeft % 3600 / 60)}m`.replace(/^([0-9]m)/, '0$1');
+            const seconds = `${timeLeft % 60}s`.replace(/^([0-9]s)/, '0$1');
 
             this._ctx.font = `${this._radius * 0.06}px monospace`;
 
@@ -413,7 +403,7 @@ class PandaTimer {
     }
 
     _drawTimeLeft() {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this._timeLeft) - 0.5 * Math.PI;
+        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft) - 0.5 * Math.PI;
 
         this._ctx.translate(this._centerX, this._centerY);
 
@@ -455,11 +445,9 @@ class PandaTimer {
         const timeLeft = Math.round(this._config.timeMax - (this._config.timeMax / (2 * Math.PI) * angle));
 
         if (Math.abs(timeLeft - this._cursorPrevious) < this._config.timeMax / 2) {
-            this._cursorPrevious = this._timeLeft;
+            this._cursorPrevious = timeLeft;
 
-            this._timeLeft = timeLeft;
-
-            this._draw();
+            this.setTimeLeft(timeLeft);
         }
     }
 
@@ -476,7 +464,7 @@ class PandaTimer {
     }
 
     _onTouch(event) {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this._timeLeft) - 0.5 * Math.PI;
+        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft) - 0.5 * Math.PI;
 
         const cx = this._centerX + this._radius * 0.925 * Math.cos(angle);
         const cy = this._centerY + this._radius * 0.925 * Math.sin(angle);
@@ -492,7 +480,7 @@ class PandaTimer {
         if (this._cursorMoving) {
             event.preventDefault();
 
-            this._cursorPrevious = this._timeLeft;
+            this._cursorPrevious = this.timeLeft;
         }
     }
 
@@ -543,13 +531,11 @@ class PandaTimer {
     }
 
     _tick() {
-        this._timeLeft -= (new Date().getTime() - this._lastTime.getTime()) / 1000;
-
-        const roundedTimeLeft = Math.round(this._timeLeft);
+        const timeLeft = this.timeLeft;
 
         this._subscriptions.forEach((subscription) => {
-            if (roundedTimeLeft === subscription._timeLeft) {
-                subscription._callback(roundedTimeLeft);
+            if (timeLeft === subscription._timeLeft) {
+                subscription._callback(timeLeft);
             }
         });
     }
