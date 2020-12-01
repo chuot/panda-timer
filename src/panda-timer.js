@@ -80,7 +80,7 @@ class PandaTimer {
                 line2: typeof config.text.line2 === 'string' ? config.text.line2 : PandaTimer.defaultConfig.text.line2,
             },
             timeLeft: isNaN(timeLeft) ? PandaTimer.defaultConfig.timeLeft : timeLeft,
-            timeMax: parseInt(`${config.timeMax}`) || PandaTimer.defaultConfig.timeMax,
+            timeMax: Math.max(0, parseInt(`${config.timeMax}`)) || PandaTimer.defaultConfig.timeMax,
         };
 
         this._ctx = canvas && canvas.getContext('2d');
@@ -446,7 +446,9 @@ class PandaTimer {
         let timeLeft = Math.round(this._config.timeMax - (this._config.timeMax / (2 * Math.PI) * angle));
 
         if (this._config.indexed) {
-            timeLeft = Math.round(timeLeft / 60) * 60;
+            const tick = this._config.timeMax / 60;
+
+            timeLeft = Math.round(timeLeft / tick) * tick;
         }
 
         if (Math.abs(timeLeft - this._cursorPrevious) < this._config.timeMax / 2) {
