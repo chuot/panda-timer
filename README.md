@@ -71,6 +71,11 @@ const subscription = pandaTimer.subscribe((timeLeft) => console.log(timeLeft), 3
 subscription.unsubscribe();
 ```
 
+```javascript
+// Get the remaining time in seconds.
+console.log(pandaTimer.timeLeft);
+```
+
 ## Default configuration
 
 ```javascript
