@@ -75,6 +75,7 @@ class PandaTimer {
             },
             font: typeof config.font === 'string' ? config.font : PandaTimer.defaultConfig.font,
             indexed: typeof config.indexed === 'boolean' ? config.indexed : PandaTimer.defaultConfig.indexed,
+            reminders: typeof config.reminders === 'boolean' ? config.reminders : PandaTimer.defaultConfig.reminders,
             text: {
                 line1: typeof config.text.line1 === 'string' ? config.text.line1 : PandaTimer.defaultConfig.text.line1,
                 line2: typeof config.text.line2 === 'string' ? config.text.line2 : PandaTimer.defaultConfig.text.line2,
@@ -164,6 +165,10 @@ class PandaTimer {
             this.setTimeLeft(timeLeft);
         }
 
+        if (!this.timeLeft) {
+            return;
+        }
+
         const interval = document.visibilityState === 'visible' ? 1 : 10000;
 
         if (this._intervalHandle) {
@@ -184,7 +189,7 @@ class PandaTimer {
 
                 this._playCompleted();
 
-            } else if (!(this.timeLeft % 300)) {
+            } else if (this._config.reminders && !(this.timeLeft % 300)) {
                 this._playReminder();
             }
 
@@ -566,6 +571,7 @@ PandaTimer.defaultConfig = {
     },
     font: 'arial',
     indexed: true,
+    reminders: true,
     text: {
         line1: 'Panda Timer',
         line2: '',

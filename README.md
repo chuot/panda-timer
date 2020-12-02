@@ -95,6 +95,8 @@ console.log(pandaTimer.timeLeft);
     },
     font: 'arial',                    // Text font.
     indexed: true,                    // Move cursor aligned with marks.
+    reminders: true,                  // Emit reminder beeps every slice
+                                      // of 5 minutes.
     text: {
         line1: 'Panda Timer',         // First text line.
         line1: '',                    // Second text line.
