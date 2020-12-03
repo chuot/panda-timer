@@ -124,15 +124,8 @@ class PandaTimer {
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                if (this.intervalHandle) {
-                    this.start();
-
-                } else {
-                    this._draw();
-                }
-
-                if (this._audioContext) {
-                    setTimeout(() => this._audioContext.resume(), 100);
+                if (this._audioContext && this._audioContext.state === 'suspended') {
+                    this._audioContext.resume();
                 }
             }
         });
@@ -243,7 +236,9 @@ class PandaTimer {
             }
 
             if (this._audioContext) {
-                this._audioContext.resume();
+                if (this._audioContext.state === 'suspended') {
+                    this._audioContext.resume();
+                }
 
                 events.forEach((event) => document.body.removeEventListener(event, bootstrap));
             }
@@ -513,49 +508,45 @@ class PandaTimer {
 
     _playCompleted() {
         if (this._audioContext && !this._audioContextBusy) {
-            this._audioContext.resume().then(() => {
-                const gn = this._audioContext.createGain();
-                const osc1 = this._audioContext.createOscillator();
-                const osc2 = this._audioContext.createOscillator();
+            const gn = this._audioContext.createGain();
+            const osc1 = this._audioContext.createOscillator();
+            const osc2 = this._audioContext.createOscillator();
 
-                this._audioContextBusy = true;
+            this._audioContextBusy = true;
 
-                gn.gain.value = 1;
-                gn.connect(this._audioContext.destination);
+            gn.gain.value = 1;
+            gn.connect(this._audioContext.destination);
 
-                osc1.frequency.value = 2050;
-                osc1.connect(gn);
-                osc1.start(this._audioContext.currentTime);
-                osc1.stop(this._audioContext.currentTime + 0.125);
+            osc1.frequency.value = 2050;
+            osc1.connect(gn);
+            osc1.start(this._audioContext.currentTime);
+            osc1.stop(this._audioContext.currentTime + 0.125);
 
-                osc2.frequency.value = 2050;
-                osc2.connect(gn);
-                osc2.start(this._audioContext.currentTime + 0.25);
-                osc2.stop(this._audioContext.currentTime + 0.35);
+            osc2.frequency.value = 2050;
+            osc2.connect(gn);
+            osc2.start(this._audioContext.currentTime + 0.25);
+            osc2.stop(this._audioContext.currentTime + 0.35);
 
-                osc2.onended = () => this._audioContextBusy = false;
-            });
+            osc2.onended = () => this._audioContextBusy = false;
         }
     }
 
     _playReminder() {
         if (this._audioContext && !this._audioContextBusy) {
-            this._audioContext.resume().then(() => {
-                const osc = this._audioContext.createOscillator();
-                const gn = this._audioContext.createGain();
+            const osc = this._audioContext.createOscillator();
+            const gn = this._audioContext.createGain();
 
-                this._audioContextBusy = true;
+            this._audioContextBusy = true;
 
-                gn.gain.value = 0.5;
-                gn.connect(this._audioContext.destination);
+            gn.gain.value = 0.5;
+            gn.connect(this._audioContext.destination);
 
-                osc.frequency.value = 1850;
-                osc.connect(gn);
-                osc.start(this._audioContext.currentTime);
-                osc.stop(this._audioContext.currentTime + 0.125);
+            osc.frequency.value = 1850;
+            osc.connect(gn);
+            osc.start(this._audioContext.currentTime);
+            osc.stop(this._audioContext.currentTime + 0.125);
 
-                osc.onended = () => this._audioContextBusy = false;
-            });
+            osc.onended = () => this._audioContextBusy = false;
         }
     }
 
