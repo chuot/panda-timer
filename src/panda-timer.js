@@ -577,7 +577,7 @@ PandaTimer.defaultConfig = {
         panda: '#333',
         scale: '#333',
         text: '#333',
-        timer: '#f00',
+        timer: '#f33',
     },
     font: 'arial',
     indexed: true,

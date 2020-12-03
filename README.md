@@ -91,7 +91,7 @@ console.log(pandaTimer.timeLeft);
         panda: '#333',                // Panda color.
         scale: '#333',                // Scale color.
         text: '#333',                 // Text line color.
-        timer: '#f00',                // Timer color.
+        timer: '#f33',                // Timer color.
     },
     font: 'arial',                    // Text font.
     indexed: true,                    // Move cursor aligned with marks.
