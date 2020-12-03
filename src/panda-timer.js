@@ -53,6 +53,8 @@ class PandaTimer {
 
         this._audioContext = null;
 
+        this._audioContextBusy = false;
+
         this._canvas = canvas;
 
         config = config !== null && typeof config === 'object' ? config : {};
@@ -143,6 +145,8 @@ class PandaTimer {
             }
         });
 
+        window.addEventListener('unload', () => this.stop());
+
         if (this._config.autostart) {
             this.start();
         }
@@ -166,6 +170,8 @@ class PandaTimer {
         }
 
         if (!this.timeLeft) {
+            this._playCompleted();
+
             return;
         }
 
@@ -472,8 +478,13 @@ class PandaTimer {
 
         this._draw();
 
-        if (this._config.autostart) {
-            this.start();
+        if (this.timeLeft) {
+            if (this._config.autostart) {
+                this.start();
+            }
+
+        } else {
+            this._playCompleted();
         }
     }
 
@@ -501,11 +512,13 @@ class PandaTimer {
     }
 
     _playCompleted() {
-        if (this._audioContext) {
+        if (this._audioContext && !this._audioContextBusy) {
             this._audioContext.resume().then(() => {
                 const gn = this._audioContext.createGain();
                 const osc1 = this._audioContext.createOscillator();
                 const osc2 = this._audioContext.createOscillator();
+
+                this._audioContextBusy = true;
 
                 gn.gain.value = 1;
                 gn.connect(this._audioContext.destination);
@@ -519,15 +532,19 @@ class PandaTimer {
                 osc2.connect(gn);
                 osc2.start(this._audioContext.currentTime + 0.25);
                 osc2.stop(this._audioContext.currentTime + 0.35);
+
+                osc2.onended = () => this._audioContextBusy = false;
             });
         }
     }
 
     _playReminder() {
-        if (this._audioContext) {
+        if (this._audioContext && !this._audioContextBusy) {
             this._audioContext.resume().then(() => {
                 const osc = this._audioContext.createOscillator();
                 const gn = this._audioContext.createGain();
+
+                this._audioContextBusy = true;
 
                 gn.gain.value = 0.5;
                 gn.connect(this._audioContext.destination);
@@ -536,6 +553,8 @@ class PandaTimer {
                 osc.connect(gn);
                 osc.start(this._audioContext.currentTime);
                 osc.stop(this._audioContext.currentTime + 0.125);
+
+                osc.onended = () => this._audioContextBusy = false;
             });
         }
     }
