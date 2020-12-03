@@ -80,29 +80,29 @@ console.log(pandaTimer.timeLeft);
 
 ```javascript
 {
-    alterable: true,                  // Allow users to change the remaining
-                                      // time by rotating the cursor around
-                                      // the clock face.
-    autostart: true,                  // Start the timer immediately or not.
+    alterable: true,                      // Allow users to change the remaining
+                                          // time by rotating the cursor around
+                                          // the clock face.
+    autostart: true,                      // Start the timer immediately or not.
     color: {
-        background: '#fff',           // Background color of the canvas.
-        cursor: 'rgba(0, 0, 0, 0.3)', // Color of the cursor.
-        face: '#fff',                 // Color of the rounded face.
-        panda: '#333',                // Panda color.
-        scale: '#333',                // Scale color.
-        text: '#333',                 // Text line color.
-        timer: '#f33',                // Timer color.
+        background: '#fff',               // Background color of the canvas.
+        cursor: 'rgba(255, 51, 51, 0.3)', // Color of the cursor.
+        face: '#fff',                     // Color of the rounded face.
+        panda: '#333',                    // Panda color.
+        scale: '#333',                    // Scale color.
+        text: '#333',                     // Text line color.
+        timer: '#f33',                    // Timer color.
     },
-    font: 'arial',                    // Text font.
-    indexed: true,                    // Move cursor aligned with marks.
-    reminders: true,                  // Emit reminder beeps every slice
-                                      // of 5 minutes.
+    font: 'arial',                        // Text font.
+    indexed: true,                        // Move cursor aligned with marks.
+    reminders: true,                      // Emit reminder beeps every slice
+                                          // of 5 minutes.
     text: {
-        line1: 'Panda Timer',         // First text line.
-        line1: '',                    // Second text line.
+        line1: 'Panda Timer',             // First text line.
+        line1: '',                        // Second text line.
     },
-    timeLeft: 0,                      // Start with the time remaining in seconds.
-    timeMax: 3600,                    // Maximum timer time in seconds.
+    timeLeft: 0,                          // Start with the time remaining in seconds.
+    timeMax: 3600,                        // Maximum timer time in seconds.
 }
 ```
 

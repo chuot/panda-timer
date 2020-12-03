@@ -572,7 +572,7 @@ PandaTimer.defaultConfig = {
     autostart: true,
     color: {
         background: '#fff',
-        cursor: 'rgba(255, 0, 0, 0.3)',
+        cursor: 'rgba(255, 51, 51, 0.3)',
         face: '#fff',
         panda: '#333',
         scale: '#333',
