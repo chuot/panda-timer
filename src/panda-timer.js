@@ -168,8 +168,6 @@ class PandaTimer {
             return;
         }
 
-        const interval = document.visibilityState === 'visible' ? 1 : 10000;
-
         if (this._intervalHandle) {
             clearInterval(this._intervalHandle);
 
@@ -193,7 +191,7 @@ class PandaTimer {
             }
 
             this._draw();
-        }, interval * 1000);
+        }, 1000);
     }
 
     stop() {
@@ -508,11 +506,11 @@ class PandaTimer {
 
     _playCompleted() {
         if (this._audioContext && !this._audioContextBusy) {
+            this._audioContextBusy = true;
+
             const gn = this._audioContext.createGain();
             const osc1 = this._audioContext.createOscillator();
             const osc2 = this._audioContext.createOscillator();
-
-            this._audioContextBusy = true;
 
             gn.gain.value = 1;
             gn.connect(this._audioContext.destination);
@@ -533,12 +531,12 @@ class PandaTimer {
 
     _playReminder() {
         if (this._audioContext && !this._audioContextBusy) {
+            this._audioContextBusy = true;
+
             const osc = this._audioContext.createOscillator();
             const gn = this._audioContext.createGain();
 
-            this._audioContextBusy = true;
-
-            gn.gain.value = 0.5;
+            gn.gain.value = 0.1;
             gn.connect(this._audioContext.destination);
 
             osc.frequency.value = 1850;
