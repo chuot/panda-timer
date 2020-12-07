@@ -500,6 +500,8 @@ class PandaTimer {
 
             this._cursorPrevious = this.timeLeft;
 
+            this._draw();
+
             this.stop();
         }
     }
