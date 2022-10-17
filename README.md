@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-    <img src="panda-timer.png" alt="Panda Timer">
+    <img src="panda-timer.gif" alt="Panda Timer">
 </p>
 
 This javascript widget was created for needs of the [Association Panda Thérèse-de Blainville et des Laurentides](https://translate.google.com/translate?sl=fr&tl=en&u=pandatdb.com) in order to contribute to the promotion of its services to the population by making this usefull tool available.
@@ -104,16 +104,6 @@ console.log(pandaTimer.timeLeft);
     timeLeft: 0,                          // Start with the time remaining in seconds.
     timeMax: 3600,                        // Maximum timer time in seconds.
 }
-```
-
-## Responsive website
-
-[Panda Timer](https://github.com/chuot/panda-timer) can be responsive by simply not specifying the `height` and `width` attributes on the canvas element.
-
-The widget will then use the size of the `parent element` to size the canvas accordingly. This is useful for wrapping the widget in a `flex container`. The widget will resize when the window is resized.
-
-```html
-<canvas id="panda-timer"></canvas>
 ```
 
 ## Show your appreciation / Support the author

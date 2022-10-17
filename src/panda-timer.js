@@ -2,7 +2,7 @@
  * *****************************************************************************
  * @license
  * Panda Timer <https://github.com/chuot/panda-timer>
- * Copyright (C) 2020 Chrystian Huot
+ * Copyright (C) 2022 Chrystian Huot <chrystian.huot@saubeo.solutions>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,194 +21,201 @@
 
 class PandaTimer {
     get timeLeft() {
-        return Math.max(0, Math.round((this._dateEnd.getTime() - new Date().getTime()) / 1000));
+        return Math.max(0, Math.round((this.#dateEnd.getTime() - new Date().getTime()) / 1000));
     }
 
-    get _centerX() {
-        return this._canvas.width / 2;
+    get #box() {
+        return this.#canvas.getBoundingClientRect();
     }
 
-    get _centerY() {
-        return this._canvas.height / 2;
+    get #centerX() {
+        return this.#canvas.width / 2;
     }
 
-    get _height() {
-        return this._canvas.height;
+    get #centerY() {
+        return this.#canvas.height / 2;
     }
 
-    get _radius() {
-        return Math.floor(Math.min(this._canvas.height, this._canvas.width) / 2 * 0.9);
+    get #height() {
+        return this.#canvas.height;
     }
 
-    get _width() {
-        return this._canvas.width;
+    get #radius() {
+        return Math.floor(Math.min(this.#canvas.height, this.#canvas.width) / 2 * 0.9);
     }
 
-    constructor(config = {}, canvas = document.getElementById('panda-timer')) {
-        if (!(canvas instanceof HTMLCanvasElement)) {
-            console.warn('canvas#panda-timer not found');
+    get #width() {
+        return this.#canvas.width;
+    }
 
-            return {};
-        }
+    #audioContext;
+    #audioContextBusy;
+    #canvas;
+    #config;
+    #ctx;
+    #cursorMoving;
+    #cursorPrevious
+    #dateEnd
+    #intervalHandle;
+    #subscriptions = [];
 
-        this._audioContext = null;
+    constructor(canvas = document.getElementById('panda-timer'), config) {
+        if (canvas instanceof HTMLCanvasElement)
+            this.#canvas = canvas;
+        else
+            throw Error('canvas is not an instanceof HTMLCanvasElement');
 
-        this._audioContextBusy = false;
-
-        this._canvas = canvas;
-
-        config = config !== null && typeof config === 'object' ? config : {};
-        config.color = config.color !== null && typeof config.color === 'object' ? config.color : {};
-        config.text = config.text !== null && typeof config.text === 'object' ? config.text : {};
-
-        const timeLeft = parseInt(`${config.timeLeft}`);
-
-        this._config = {
-            alterable: typeof config.alterable === 'boolean' ? config.alterable : PandaTimer.defaultConfig.alterable,
-            autostart: typeof config.autostart === 'boolean' ? config.autostart : PandaTimer.defaultConfig.autostart,
+        this.#config = {
+            alterable: typeof config?.alterable === 'boolean' ? config.alterable : PandaTimer.defaultConfig.alterable,
+            autostart: typeof config?.autostart === 'boolean' ? config.autostart : PandaTimer.defaultConfig.autostart,
             color: {
-                background: typeof config.color.background === 'string' ? config.color.background : PandaTimer.defaultConfig.color.background,
-                cursor: typeof config.color.cursor === 'string' ? config.color.cursor : PandaTimer.defaultConfig.color.cursor,
-                face: typeof config.color.face === 'string' ? config.color.face : PandaTimer.defaultConfig.color.face,
-                panda: typeof config.color.panda === 'string' ? config.color.panda : PandaTimer.defaultConfig.color.panda,
-                scale: typeof config.color.scale === 'string' ? config.color.scale : PandaTimer.defaultConfig.color.scale,
-                text: typeof config.color.text === 'string' ? config.color.text : PandaTimer.defaultConfig.color.text,
-                timer: typeof config.color.timer === 'string' ? config.color.timer : PandaTimer.defaultConfig.color.timer,
+                background: typeof config?.color?.background === 'string' ? config.color.background : PandaTimer.defaultConfig.color.background,
+                cursor: typeof config?.color?.cursor === 'string' ? config.color.cursor : PandaTimer.defaultConfig.color.cursor,
+                face: typeof config?.color?.face === 'string' ? config.color.face : PandaTimer.defaultConfig.color.face,
+                panda: typeof config?.color?.panda === 'string' ? config.color.panda : PandaTimer.defaultConfig.color.panda,
+                scale: typeof config?.color?.scale === 'string' ? config.color.scale : PandaTimer.defaultConfig.color.scale,
+                text: typeof config?.color?.text === 'string' ? config.color.text : PandaTimer.defaultConfig.color.text,
+                timer: typeof config?.color?.timer === 'string' ? config.color.timer : PandaTimer.defaultConfig.color.timer,
             },
-            font: typeof config.font === 'string' ? config.font : PandaTimer.defaultConfig.font,
-            indexed: typeof config.indexed === 'boolean' ? config.indexed : PandaTimer.defaultConfig.indexed,
-            reminders: typeof config.reminders === 'boolean' ? config.reminders : PandaTimer.defaultConfig.reminders,
+            font: typeof config?.font === 'string' ? config.font : PandaTimer.defaultConfig.font,
+            indexed: typeof config?.indexed === 'boolean' ? config.indexed : PandaTimer.defaultConfig.indexed,
+            reminders: typeof config?.reminders === 'boolean' ? config.reminders : PandaTimer.defaultConfig.reminders,
             text: {
-                line1: typeof config.text.line1 === 'string' ? config.text.line1 : PandaTimer.defaultConfig.text.line1,
-                line2: typeof config.text.line2 === 'string' ? config.text.line2 : PandaTimer.defaultConfig.text.line2,
+                line1: typeof config?.text?.line1 === 'string' ? config.text.line1 : PandaTimer.defaultConfig.text.line1,
+                line2: typeof config?.text?.line2 === 'string' ? config.text.line2 : PandaTimer.defaultConfig.text.line2,
             },
-            timeLeft: isNaN(timeLeft) ? PandaTimer.defaultConfig.timeLeft : timeLeft,
-            timeMax: Math.max(0, parseInt(`${config.timeMax}`)) || PandaTimer.defaultConfig.timeMax,
+            timeLeft: Math.max(0, parseInt(`${config?.timeLeft}`)) || PandaTimer.defaultConfig.timeLeft,
+            timeMax: Math.max(0, parseInt(`${config?.timeMax}`)) || PandaTimer.defaultConfig.timeMax,
         };
 
-        this._ctx = canvas && canvas.getContext('2d');
+        this.#ctx = canvas && canvas.getContext('2d');
 
-        this._cursorMoving = false;
+        this.#bootstrap();
 
-        this._cursorPrevious = null;
+        this.setTimeLeft(this.#config.timeLeft);
 
-        this._dateEnd = null;
+        this.#resize();
 
-        this._intervalHandle = null;
+        this.#draw();
 
-        this._responsive = !this._canvas.attributes.getNamedItem('height') && !this._canvas.attributes.getNamedItem('width');
-
-        this._subscriptions = [];
-
-        this._bootstrap();
-
-        this.setTimeLeft(this._config.timeLeft);
-
-        if (this._responsive) {
-            this._resize();
-
-            window.addEventListener('resize', () => {
-                this._resize();
-
-                this._draw();
-            });
+        if (this.#config.alterable) {
+            this.#canvas.addEventListener('mousedown', this);
+            this.#canvas.addEventListener('touchstart', this);
+            this.#canvas.addEventListener('touchmove', this);
+            this.#canvas.addEventListener('touchend', this);
         }
 
-        this._draw();
+        document.addEventListener('visibilitychange', this);
 
-        if (this._config.alterable) {
-            ['mousedown', 'touchstart'].forEach((type) => this._canvas.addEventListener(type, (event) => this._onTouch(event)));
-            ['mousemove', 'touchmove'].forEach((type) => this._canvas.addEventListener(type, (event) => this._onMove(event)));
-            ['mouseleave', 'mouseup', 'touchend'].forEach((type) => this._canvas.addEventListener(type, () => this._onRelease()));
-        }
+        window.addEventListener('beforeunload', this);
+        window.addEventListener('unload', this);
+        window.addEventListener('resize', this);
 
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                if (this._audioContext && this._audioContext.state === 'suspended') {
-                    this._audioContext.resume();
-                }
-            }
-        });
-
-        window.addEventListener('beforeunload', (event) => {
-            if (this._intervalHandle) {
-                event.preventDefault();
-
-                event.returnValue = '';
-            }
-        });
-
-        window.addEventListener('unload', () => this.stop());
-
-        if (this._config.autostart) {
+        if (this.#config.autostart)
             this.start();
+    }
+
+    handleEvent(event) {
+        switch (event.type) {
+            case 'mousedown':
+            case 'touchstart':
+                this.#onTouch(event);
+                break;
+
+            case 'mousemove':
+            case 'touchmove':
+                this.#onMove(event);
+                break;
+
+            case 'mouseup':
+            case 'touchend':
+                this.#onRelease(event);
+                break;
+
+            case 'resize':
+                this.#resize();
+                this.#draw();
+                break;
+
+            case 'beforeunload':
+                this.#confirmExit(event);
+                break;
+
+            case 'unload':
+                this.stop();
+                break;
+
+            case 'visibilitychange':
+                this.#onVisibility();
+                break;
+
+            default:
+                break;
         }
     }
 
     setTimeLeft(timeLeft) {
-        if (typeof timeLeft !== 'number') {
-            return;
-        }
+        if (typeof timeLeft !== 'number') return;
 
-        this._dateEnd = new Date();
+        this.#dateEnd = new Date();
 
-        this._dateEnd.setSeconds(this._dateEnd.getSeconds() + timeLeft);
+        this.#dateEnd.setSeconds(this.#dateEnd.getSeconds() + timeLeft);
 
-        this._draw();
+        this.#draw();
     }
 
     start(timeLeft) {
-        if (typeof timeleft === 'number') {
+        if (typeof timeLeft === 'number')
             this.setTimeLeft(timeLeft);
-        }
 
         if (!this.timeLeft) {
-            this._playCompleted();
+            this.#playCompleted();
 
             return;
         }
 
-        if (this._intervalHandle) {
-            clearInterval(this._intervalHandle);
+        if (this.#intervalHandle) {
+            clearInterval(this.#intervalHandle);
 
-            this._tick();
+            this.#tick();
 
-            this._draw();
+            this.#draw();
         }
 
-        this._intervalHandle = setInterval(() => {
-            this._tick();
+        this.#intervalHandle = setInterval(() => {
+            this.#tick();
 
             if (this.timeLeft <= 0) {
-                clearInterval(this._intervalHandle);
+                clearInterval(this.#intervalHandle);
 
-                this._intervalHandle = null;
+                this.#intervalHandle = null;
 
-                this._playCompleted();
+                this.#playCompleted();
 
-            } else if (this._config.reminders && !(this.timeLeft % 300)) {
-                this._playReminder();
+            } else {
+                if (this.#config.reminders)
+                    if (!(this.timeLeft % 300)) this.#playReminder();
             }
 
-            this._draw();
+            this.#draw();
         }, 1000);
     }
 
     stop() {
-        if (this._intervalHandle) {
-            clearInterval(this._intervalHandle);
+        if (this.#intervalHandle) {
+            clearInterval(this.#intervalHandle);
 
-            this._intervalHandle = null;
+            this.#intervalHandle = null;
         }
     }
 
     subscribe(callback, timeLeft = 0) {
         const subscription = {
             unsubscribe: () => {
-                const index = this._subscriptions.find((_subscription) => _subscription === subscription);
+                const index = this.#subscriptions.find((s) => s === subscription);
 
                 if (index !== -1) {
-                    this._subscriptions.splice(index, 1);
+                    this.#subscriptions.splice(index, 1);
 
                     return true;
 
@@ -216,26 +223,25 @@ class PandaTimer {
                     return false;
                 }
             },
-            get _callback() { return typeof callback === 'function' ? callback : () => { } },
-            get _timeLeft() { return Math.round(timeLeft) },
+            get callback() { return typeof callback === 'function' ? callback : () => { } },
+            get timeLeft() { return Math.round(timeLeft) },
         };
 
-        this._subscriptions.push(subscription);
+        this.#subscriptions.push(subscription);
 
         return subscription;
     }
 
-    _bootstrap() {
+    #bootstrap() {
         const events = ['keydown', 'mousedown', 'touchstart'];
 
         const bootstrap = () => {
-            if (!this._audioContext) {
-                this._audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
+            if (!this.#audioContext)
+                this.#audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-            if (this._audioContext) {
-                if (this._audioContext.state === 'suspended') {
-                    this._audioContext.resume();
+            if (this.#audioContext) {
+                if (this.#audioContext.state === 'suspended') {
+                    this.#audioContext.resume();
                 }
 
                 events.forEach((event) => document.body.removeEventListener(event, bootstrap));
@@ -245,323 +251,338 @@ class PandaTimer {
         events.forEach((event) => document.body.addEventListener(event, bootstrap));
     }
 
-    _draw() {
-        this._drawBackground();
-        this._drawFace();
-        this._drawTicks();
-        this._drawTimeLeft();
-        this._drawPanda();
+    #confirmExit(event) {
+        if (!this.#intervalHandle) return;
 
-        if (this._config.alterable) {
-            this._drawCursor();
-        }
-
-        this._drawNumbers();
-        this._drawText();
+        event.preventDefault();
+        event.returnValue = '';
     }
 
-    _drawBackground() {
-        this._ctx.rect(0, 0, this._width, this._height);
-        this._ctx.fillStyle = this._config.color.background;
-        this._ctx.fill();
+    #draw() {
+        this.#drawBackground();
+        this.#drawFace();
+        this.#drawTicks();
+        this.#drawTimeLeft();
+        this.#drawPanda();
+
+        if (this.#config.alterable)
+            this.#drawCursor();
+
+        this.#drawNumbers();
+        this.#drawText();
     }
 
-    _drawCursor() {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft);
-
-        this._ctx.beginPath();
-        this._ctx.translate(this._centerX + this._radius * 0.8 * Math.sin(angle), this._centerY + this._radius * -0.8 * Math.cos(angle));
-        this._ctx.moveTo(0, 0);
-        this._ctx.rotate(angle);
-        this._ctx.lineTo(this._radius * -0.1, this._radius * -0.1);
-        this._ctx.arcTo(this._radius * -0.1, this._radius * -0.2, 0, this._radius * -0.2, this._radius * 0.1);
-        this._ctx.arcTo(this._radius * 0.1, this._radius * -0.2, this._radius * 0.1, this._radius * -0.1, this._radius * 0.1);
-        this._ctx.lineTo(0, 0);
-        this._ctx.fillStyle = this._config.color.cursor;
-        this._ctx.fill();
-        this._ctx.rotate(-angle);
-        this._ctx.translate(-this._centerX + this._radius * -0.8 * Math.sin(angle), -this._centerY + this._radius * 0.8 * Math.cos(angle));
+    #drawBackground() {
+        this.#ctx.rect(0, 0, this.#width, this.#height);
+        this.#ctx.fillStyle = this.#config.color.background;
+        this.#ctx.fill();
     }
 
-    _drawFace() {
-        this._ctx.beginPath();
-        this._ctx.arc(this._centerX, this._centerY, this._radius * 1.1, 0, 2 * Math.PI);
-        this._ctx.fillStyle = this._config.color.face;
-        this._ctx.fill();
+    #drawCursor() {
+        const angle = 2 * Math.PI / this.#config.timeMax * (this.#config.timeMax - this.timeLeft);
+
+        this.#ctx.beginPath();
+        this.#ctx.translate(this.#centerX + this.#radius * 0.8 * Math.sin(angle), this.#centerY + this.#radius * -0.8 * Math.cos(angle));
+        this.#ctx.moveTo(0, 0);
+        this.#ctx.rotate(angle);
+        this.#ctx.lineTo(this.#radius * -0.1, this.#radius * -0.1);
+        this.#ctx.arcTo(this.#radius * -0.1, this.#radius * -0.2, 0, this.#radius * -0.2, this.#radius * 0.1);
+        this.#ctx.arcTo(this.#radius * 0.1, this.#radius * -0.2, this.#radius * 0.1, this.#radius * -0.1, this.#radius * 0.1);
+        this.#ctx.lineTo(0, 0);
+        this.#ctx.fillStyle = this.#config.color.cursor;
+        this.#ctx.fill();
+        this.#ctx.rotate(-angle);
+        this.#ctx.translate(-this.#centerX + this.#radius * -0.8 * Math.sin(angle), -this.#centerY + this.#radius * 0.8 * Math.cos(angle));
     }
 
-    _drawNumbers() {
-        if (this._config.timeMax < 720) {
-            return;
-        }
+    #drawFace() {
+        this.#ctx.beginPath();
+        this.#ctx.arc(this.#centerX, this.#centerY, this.#radius * 1.1, 0, 2 * Math.PI);
+        this.#ctx.fillStyle = this.#config.color.face;
+        this.#ctx.fill();
+    }
 
-        const step = this._config.timeMax / 60 / 12;
+    #drawNumbers() {
+        if (this.#config.timeMax < 720) return;
 
-        this._ctx.font = `bold ${this._radius * (this._config.timeMax > 3600 ? 0.1 : 0.15)}px ${this._config.font}`;
-        this._ctx.textBaseline = 'middle';
-        this._ctx.textAlign = 'center';
+        const step = this.#config.timeMax / 60 / 12;
+
+        this.#ctx.font = `bold ${this.#radius * (this.#config.timeMax > 3600 ? 0.1 : 0.15)}px ${this.#config.font}`;
+        this.#ctx.textBaseline = 'middle';
+        this.#ctx.textAlign = 'center';
 
         for (let i = 0; i < 12; i++) {
             const angle = i * Math.PI / -6;
             const label = `${Math.floor(i * step)}`;
 
-            this._ctx.fillStyle = [1, 2, 6, 10, 11].includes(i) ? this._config.color.face : this._config.color.scale;
+            this.#ctx.fillStyle = [1, 2, 6, 10, 11].includes(i) ? this.#config.color.face : this.#config.color.scale;
 
-            this._ctx.translate(this._centerX, this._centerY);
+            this.#ctx.translate(this.#centerX, this.#centerY);
 
-            this._ctx.beginPath();
-            this._ctx.rotate(angle);
-            this._ctx.translate(0, this._radius * -0.925);
-            this._ctx.rotate(-angle);
-            this._ctx.fillText(label, 0, 0);
-            this._ctx.rotate(angle);
-            this._ctx.translate(0, this._radius * 0.925);
-            this._ctx.rotate(-angle);
+            this.#ctx.beginPath();
+            this.#ctx.rotate(angle);
+            this.#ctx.translate(0, this.#radius * -0.925);
+            this.#ctx.rotate(-angle);
+            this.#ctx.fillText(label, 0, 0);
+            this.#ctx.rotate(angle);
+            this.#ctx.translate(0, this.#radius * 0.925);
+            this.#ctx.rotate(-angle);
 
-            this._ctx.translate(-this._centerX, -this._centerY);
+            this.#ctx.translate(-this.#centerX, -this.#centerY);
         }
     }
 
-    _drawPanda() {
-        this._ctx.fillStyle = this._config.color.panda;
+    #drawPanda() {
+        this.#ctx.fillStyle = this.#config.color.panda;
 
-        this._ctx.translate(this._centerX, this._centerY);
+        this.#ctx.translate(this.#centerX, this.#centerY);
 
-        this._ctx.beginPath();
-        this._ctx.rotate(-0.25 * Math.PI);
-        this._ctx.arc(0, this._radius * -0.95, this._radius * 0.4, 0.875 * Math.PI, 0.125 * Math.PI);
-        this._ctx.fill();
-        this._ctx.rotate(0.25 * Math.PI);
+        this.#ctx.beginPath();
+        this.#ctx.rotate(-0.25 * Math.PI);
+        this.#ctx.arc(0, this.#radius * -0.95, this.#radius * 0.4, 0.875 * Math.PI, 0.125 * Math.PI);
+        this.#ctx.fill();
+        this.#ctx.rotate(0.25 * Math.PI);
 
-        this._ctx.beginPath();
-        this._ctx.rotate(0.25 * Math.PI);
-        this._ctx.arc(0, this._radius * -0.95, this._radius * 0.4, 0.875 * Math.PI, 0.125 * Math.PI);
-        this._ctx.fill();
-        this._ctx.rotate(-0.25 * Math.PI);
+        this.#ctx.beginPath();
+        this.#ctx.rotate(0.25 * Math.PI);
+        this.#ctx.arc(0, this.#radius * -0.95, this.#radius * 0.4, 0.875 * Math.PI, 0.125 * Math.PI);
+        this.#ctx.fill();
+        this.#ctx.rotate(-0.25 * Math.PI);
 
-        this._ctx.beginPath();
-        this._ctx.ellipse(this._radius * -0.35, 0, this._radius * 0.25, this._radius * 0.4, 0.1 * Math.PI, 0, 2 * Math.PI);
-        this._ctx.ellipse(this._radius * 0.35, 0, this._radius * 0.25, this._radius * 0.4, -0.1 * Math.PI, 0, 2 * Math.PI);
-        this._ctx.fill();
+        this.#ctx.beginPath();
+        this.#ctx.ellipse(this.#radius * -0.35, 0, this.#radius * 0.25, this.#radius * 0.4, 0.1 * Math.PI, 0, 2 * Math.PI);
+        this.#ctx.ellipse(this.#radius * 0.35, 0, this.#radius * 0.25, this.#radius * 0.4, -0.1 * Math.PI, 0, 2 * Math.PI);
+        this.#ctx.fill();
 
-        this._ctx.beginPath();
-        this._ctx.arc(0, this._radius * 0.85, this._radius * 0.2, 1.925 * Math.PI, 1.075 * Math.PI);
-        this._ctx.fill();
+        this.#ctx.beginPath();
+        this.#ctx.arc(0, this.#radius * 0.85, this.#radius * 0.2, 1.925 * Math.PI, 1.075 * Math.PI);
+        this.#ctx.fill();
 
-        this._ctx.translate(-this._centerX, -this._centerY);
+        this.#ctx.translate(-this.#centerX, -this.#centerY);
     }
 
-    _drawText() {
-        this._ctx.beginPath();
-        this._ctx.fillStyle = this._config.color.text;
-        this._ctx.textBaseline = 'middle';
-        this._ctx.textAlign = 'center';
+    #drawText() {
+        this.#ctx.beginPath();
+        this.#ctx.fillStyle = this.#config.color.text;
+        this.#ctx.textBaseline = 'middle';
+        this.#ctx.textAlign = 'center';
 
-        if (this._cursorMoving) {
+        if (this.#cursorMoving) {
             const timeLeft = this.timeLeft;
 
-            const hours = this._config.timeMax >= 3600 ? `${Math.floor(timeLeft / 3600)}h` : '';
+            const hours = this.#config.timeMax >= 3600 ? `${Math.floor(timeLeft / 3600)}h` : '';
             const minutes = `${Math.floor(timeLeft % 3600 / 60)}m`.replace(/^([0-9]m)/, '0$1');
             const seconds = `${timeLeft % 60}s`.replace(/^([0-9]s)/, '0$1');
 
-            this._ctx.font = `${this._radius * 0.06}px monospace`;
+            this.#ctx.font = `${this.#radius * 0.06}px monospace`;
 
-            this._ctx.fillText(`${hours} ${minutes} ${seconds}`, this._centerX, this._centerY + this._radius * 0.45);
+            this.#ctx.fillText(`${hours} ${minutes} ${seconds}`, this.#centerX, this.#centerY + this.#radius * 0.45);
 
         } else {
-            this._ctx.font = `${this._radius * 0.05}px ${this._config.font}`;
+            this.#ctx.font = `${this.#radius * 0.05}px ${this.#config.font}`;
 
-            if (this._config.text.line1 && this._config.text.line2) {
+            if (this.#config.text.line1 && this.#config.text.line2) {
 
-                this._ctx.fillText(this._config.text.line1, this._centerX, this._centerY + this._radius * 0.425);
-                this._ctx.fillText(this._config.text.line2, this._centerX, this._centerY + this._radius * 0.475);
+                this.#ctx.fillText(this.#config.text.line1, this.#centerX, this.#centerY + this.#radius * 0.425);
+                this.#ctx.fillText(this.#config.text.line2, this.#centerX, this.#centerY + this.#radius * 0.475);
 
             } else {
-                this._ctx.fillText(this._config.text.line1 || this._config.text.line2, this._centerX, this._centerY + this._radius * 0.45);
+                this.#ctx.fillText(this.#config.text.line1 || this.#config.text.line2, this.#centerX, this.#centerY + this.#radius * 0.45);
             }
         }
     }
 
-    _drawTicks() {
+    #drawTicks() {
         for (let i = 0; i < 30; i++) {
             const angle = i * Math.PI / 30;
-            const tickBegin = this._radius * (i % 5 ? 0.7 : 0.6);
-            const tickEnd = this._radius * 0.8;
+            const tickBegin = this.#radius * (i % 5 ? 0.7 : 0.6);
+            const tickEnd = this.#radius * 0.8;
             const width = i % 5 ? 1 : 3;
 
-            this._ctx.translate(this._centerX, this._centerY);
+            this.#ctx.translate(this.#centerX, this.#centerY);
 
-            this._ctx.beginPath();
-            this._ctx.moveTo(0, 0);
-            this._ctx.rotate(angle);
-            this._ctx.moveTo(0, tickBegin);
-            this._ctx.lineTo(0, tickEnd);
-            this._ctx.moveTo(0, -tickBegin);
-            this._ctx.lineTo(0, -tickEnd);
-            this._ctx.lineWidth = width;
-            this._ctx.strokeStyle = this._config.color.scale;
-            this._ctx.stroke();
-            this._ctx.rotate(-angle);
+            this.#ctx.beginPath();
+            this.#ctx.moveTo(0, 0);
+            this.#ctx.rotate(angle);
+            this.#ctx.moveTo(0, tickBegin);
+            this.#ctx.lineTo(0, tickEnd);
+            this.#ctx.moveTo(0, -tickBegin);
+            this.#ctx.lineTo(0, -tickEnd);
+            this.#ctx.lineWidth = width;
+            this.#ctx.strokeStyle = this.#config.color.scale;
+            this.#ctx.stroke();
+            this.#ctx.rotate(-angle);
 
-            this._ctx.translate(-this._centerX, -this._centerY);
+            this.#ctx.translate(-this.#centerX, -this.#centerY);
         }
     }
 
-    _drawTimeLeft() {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft) - 0.5 * Math.PI;
+    #drawTimeLeft() {
+        const angle = 2 * Math.PI / this.#config.timeMax * (this.#config.timeMax - this.timeLeft) - 0.5 * Math.PI;
 
-        this._ctx.translate(this._centerX, this._centerY);
+        this.#ctx.translate(this.#centerX, this.#centerY);
 
-        this._ctx.fillStyle = this._config.color.timer;
+        this.#ctx.fillStyle = this.#config.color.timer;
 
-        this._ctx.beginPath();
-        this._ctx.moveTo(0, 0);
-        this._ctx.arc(0, 0, this._radius * 0.8, angle, 1.5 * Math.PI);
-        this._ctx.lineTo(0, 0);
-        this._ctx.fill();
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(0, 0);
+        this.#ctx.arc(0, 0, this.#radius * 0.8, angle, 1.5 * Math.PI);
+        this.#ctx.lineTo(0, 0);
+        this.#ctx.fill();
 
-        this._ctx.beginPath();
-        this._ctx.arc(0, 0, this._radius * 0.025, 0, 2 * Math.PI);
-        this._ctx.shadowBlur = this._radius * 0.01;
-        this._ctx.shadowColor = '#333';
-        this._ctx.fill();
-        this._ctx.shadowBlur = 0;
+        this.#ctx.beginPath();
+        this.#ctx.arc(0, 0, this.#radius * 0.025, 0, 2 * Math.PI);
+        this.#ctx.shadowBlur = this.#radius * 0.01;
+        this.#ctx.shadowColor = '#333';
+        this.#ctx.fill();
+        this.#ctx.shadowBlur = 0;
 
-        this._ctx.translate(-this._centerX, -this._centerY);
+        this.#ctx.translate(-this.#centerX, -this.#centerY);
     }
 
-    _onMove(event) {
-        if (!this._cursorMoving) {
-            return;
-        }
+    #onMove(event) {
+        if (!this.#cursorMoving) return;
 
-        const pageX = event.touches ? event.touches[0].pageX : event.pageX;
-        const pageY = event.touches ? event.touches[0].pageY : event.pageY;
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-        const x = pageX - (event.target.clientLeft + event.target.offsetLeft) - this._centerX;
-        const y = pageY - (event.target.clientTop + event.target.offsetTop) - this._centerY;
+        const x = clientX - this.#box.x - this.#centerX;
+        const y = clientY - this.#box.y - this.#centerY;
 
         let angle = Math.atan2(y, x) + 0.5 * Math.PI;
 
-        if (angle < 0) {
+        if (angle < 0)
             angle += 2 * Math.PI
-        }
 
-        let timeLeft = Math.round(this._config.timeMax - (this._config.timeMax / (2 * Math.PI) * angle));
+        let timeLeft = Math.round(this.#config.timeMax - (this.#config.timeMax / (2 * Math.PI) * angle));
 
-        if (this._config.indexed) {
-            const tick = this._config.timeMax / 60;
+        if (this.#config.indexed) {
+            const tick = this.#config.timeMax / 60;
 
             timeLeft = Math.round(timeLeft / tick) * tick;
         }
 
-        if (Math.abs(timeLeft - this._cursorPrevious) < this._config.timeMax / 2) {
-            this._cursorPrevious = timeLeft;
+        if (Math.abs(timeLeft - this.#cursorPrevious) < this.#config.timeMax / 2) {
+            this.#cursorPrevious = timeLeft;
 
             this.setTimeLeft(timeLeft);
         }
     }
 
-    _onRelease() {
-        if (!this._cursorMoving) {
-            return;
+    #onRelease(event) {
+        if (!event.touches) {
+            document.removeEventListener('mousemove', this);
+            document.removeEventListener('mouseup', this);
         }
 
-        this._cursorMoving = false;
+        if (!this.#cursorMoving) return;
 
-        this._draw();
+        this.#cursorMoving = false;
+
+        this.#draw();
 
         if (this.timeLeft) {
-            if (this._config.autostart) {
+            if (this.#config.autostart)
                 this.start();
-            }
 
         } else {
-            this._playCompleted();
+            this.#playCompleted();
         }
     }
 
-    _onTouch(event) {
-        const angle = 2 * Math.PI / this._config.timeMax * (this._config.timeMax - this.timeLeft) - 0.5 * Math.PI;
+    #onTouch(event) {
+        if (!event.touches) {
+            document.addEventListener('mousemove', this);
+            document.addEventListener('mouseup', this);
+        }
 
-        const cx = this._centerX + this._radius * 0.925 * Math.cos(angle);
-        const cy = this._centerY + this._radius * 0.925 * Math.sin(angle);
+        const angle = 2 * Math.PI / this.#config.timeMax * (this.#config.timeMax - this.timeLeft) - 0.5 * Math.PI;
 
-        const pageX = event.touches ? event.touches[0].pageX : event.pageX;
-        const pageY = event.touches ? event.touches[0].pageY : event.pageY;
+        const cursorX = this.#centerX + this.#radius * 0.925 * Math.cos(angle);
+        const cursorY = this.#centerY + this.#radius * 0.925 * Math.sin(angle);
 
-        const x = pageX - (event.target.clientLeft + event.target.offsetLeft);
-        const y = pageY - (event.target.clientTop + event.target.offsetTop);
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-        this._cursorMoving = Math.sqrt((cx - x) ** 2 + (cy - y) ** 2) <= this._radius * 0.15;
+        const x = clientX - this.#box.x;
+        const y = clientY - this.#box.y;
 
-        if (this._cursorMoving) {
+        this.#cursorMoving = Math.sqrt((cursorX - x) ** 2 + (cursorY - y) ** 2) <= this.#radius * 0.15;
+
+        if (this.#cursorMoving) {
             event.preventDefault();
 
-            this._cursorPrevious = this.timeLeft;
+            this.#cursorPrevious = this.timeLeft;
 
-            this._draw();
+            this.#draw();
 
             this.stop();
         }
     }
 
-    _playCompleted() {
-        if (this._audioContext && !this._audioContextBusy) {
-            this._audioContextBusy = true;
-
-            const gn = this._audioContext.createGain();
-            const osc1 = this._audioContext.createOscillator();
-            const osc2 = this._audioContext.createOscillator();
-
-            gn.gain.value = 1;
-            gn.connect(this._audioContext.destination);
-
-            osc1.frequency.value = 2050;
-            osc1.connect(gn);
-            osc1.start(this._audioContext.currentTime);
-            osc1.stop(this._audioContext.currentTime + 0.125);
-
-            osc2.frequency.value = 2050;
-            osc2.connect(gn);
-            osc2.start(this._audioContext.currentTime + 0.25);
-            osc2.stop(this._audioContext.currentTime + 0.35);
-
-            osc2.onended = () => this._audioContextBusy = false;
-        }
+    #onVisibility() {
+        if (document.visibilityState === 'visible')
+            if (this.#audioContext)
+                if (this.#audioContext.state === 'suspended')
+                    this.#audioContext.resume();
     }
 
-    _playReminder() {
-        if (this._audioContext && !this._audioContextBusy) {
-            this._audioContextBusy = true;
+    #playCompleted() {
+        if (this.#audioContext)
+            if (!this.#audioContextBusy) {
+                this.#audioContextBusy = true;
 
-            const osc = this._audioContext.createOscillator();
-            const gn = this._audioContext.createGain();
+                const gn = this.#audioContext.createGain();
+                const osc1 = this.#audioContext.createOscillator();
+                const osc2 = this.#audioContext.createOscillator();
+
+                gn.gain.value = 1;
+                gn.connect(this.#audioContext.destination);
+
+                osc1.frequency.value = 2050;
+                osc1.connect(gn);
+                osc1.start(this.#audioContext.currentTime);
+                osc1.stop(this.#audioContext.currentTime + 0.125);
+
+                osc2.frequency.value = 2050;
+                osc2.connect(gn);
+                osc2.start(this.#audioContext.currentTime + 0.25);
+                osc2.stop(this.#audioContext.currentTime + 0.35);
+
+                osc2.onended = () => this.#audioContextBusy = false;
+            }
+    }
+
+    #playReminder() {
+        if (this.#audioContext && !this.#audioContextBusy) {
+            this.#audioContextBusy = true;
+
+            const osc = this.#audioContext.createOscillator();
+            const gn = this.#audioContext.createGain();
 
             gn.gain.value = 0.1;
-            gn.connect(this._audioContext.destination);
+            gn.connect(this.#audioContext.destination);
 
             osc.frequency.value = 1850;
             osc.connect(gn);
-            osc.start(this._audioContext.currentTime);
-            osc.stop(this._audioContext.currentTime + 0.125);
+            osc.start(this.#audioContext.currentTime);
+            osc.stop(this.#audioContext.currentTime + 0.125);
 
-            osc.onended = () => this._audioContextBusy = false;
+            osc.onended = () => this.#audioContextBusy = false;
         }
     }
 
-    _resize() {
-        if (this._responsive) {
-            this._canvas.height = this._canvas.width = Math.min(this._canvas.parentElement.clientHeight, this._canvas.parentElement.clientWidth);
-        }
+    #resize() {
+        this.#canvas.height = this.#canvas.clientHeight;
+        this.#canvas.width = this.#canvas.clientWidth;
     }
 
-    _tick() {
+    #tick() {
         const timeLeft = this.timeLeft;
 
-        this._subscriptions.forEach((subscription) => {
-            if (timeLeft === subscription._timeLeft) {
-                subscription._callback(timeLeft);
+        this.#subscriptions.forEach((subscription) => {
+            if (timeLeft === subscription.timeLeft) {
+                subscription.callback(timeLeft);
             }
         });
     }
@@ -589,7 +610,3 @@ PandaTimer.defaultConfig = {
     timeLeft: 0,
     timeMax: 3600,
 };
-
-if (window !== undefined) {
-    window.PandaTimer = PandaTimer;
-}
