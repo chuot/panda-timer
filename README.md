@@ -42,7 +42,7 @@ const config = {};
 const canvasElement = document.getElementById('panda-timer');
 
 // Instanciate a new Panda Timer.
-const pandaTimer = new PandaTimer(config, canvasElement);
+const pandaTimer = new PandaTimer(canvasElement, config);
 ```
 
 ```javascript
