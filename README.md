@@ -99,7 +99,7 @@ console.log(pandaTimer.timeLeft);
                                           // of 5 minutes.
     text: {
         line1: 'Panda Timer',             // First text line.
-        line1: '',                        // Second text line.
+        line2: '',                        // Second text line.
     },
     timeLeft: 0,                          // Start with the time remaining in seconds.
     timeMax: 3600,                        // Maximum timer time in seconds.
